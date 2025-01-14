@@ -2,7 +2,7 @@ ARG BASE_IMAGE=ubuntu:20.04
 #################################
 #   Librealsense Builder Stage  #
 #################################
-FROM $BASE_IMAGE as librealsense-builder
+FROM $BASE_IMAGE AS librealsense-builder
 
 ARG LIBRS_VERSION
 # Make sure that we have a version number of librealsense as argument
@@ -44,6 +44,7 @@ RUN cd /usr/src/librealsense \
     -DCMAKE_C_FLAGS_RELEASE="${CMAKE_C_FLAGS_RELEASE} -s" \
     -DCMAKE_CXX_FLAGS_RELEASE="${CMAKE_CXX_FLAGS_RELEASE} -s" \
     -DCMAKE_INSTALL_PREFIX=/opt/librealsense \    
+    -DPYTHON_EXECUTABLE=/usr/bin/python3 \  
     -DBUILD_GRAPHICAL_EXAMPLES=OFF \
     -DBUILD_PYTHON_BINDINGS:bool=true \
     -DCMAKE_BUILD_TYPE=Release ../ \
@@ -53,7 +54,7 @@ RUN cd /usr/src/librealsense \
 ######################################
 #   librealsense Base Image Stage    #
 ######################################
-FROM ${BASE_IMAGE} as librealsense
+FROM ${BASE_IMAGE} AS librealsense
 
 # Copy binaries from builder stage
 COPY --from=librealsense-builder /opt/librealsense /usr/local/
@@ -73,5 +74,17 @@ RUN apt-get update \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
+# Install extra packages
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    git \
+    python3 \
+    python3-dev \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+    
+# Install pyrealsense2
+RUN pip3 install --no-cache-dir pyrealsense2
+
 # Shows a list of connected Realsense devices
-CMD [ "rs-enumerate-devices", "--compact" ]
+CMD [ "/bin/bash" ]
